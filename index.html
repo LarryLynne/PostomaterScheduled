@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поштоматер</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div id="sidebar">
+    <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+            <label>Дані</label>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="card-body">
+            <div class="file-wrapper">
+                <input type="file" id="fileInput" accept=".xlsx, .xls">
+                <div id="fileName">Обрати файл</div>
+            </div>
+            <div id="fileStatus" class="status">Очікування...</div>
+        </div>
+    </div>
+    
+    <div class="card collapsed">
+            <div class="card-header" onclick="toggleCard(this)">
+                <label>Розкидач</label>
+                <span class="toggle-icon">▼</span>
+            </div>
+
+            <div class="card-body">
+                <label style="margin-top:0px; margin-bottom:5px; color:#94a3b8;">Алгоритм:</label>
+                <select id="algoSelect">
+                    <option value="greedy">Суворий ліміт (Жадібний)</option>
+                    <option value="kmeans">Баланс (K-Means)</option>
+                </select>
+
+                <div class="setting-row">
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:3px;">Макс точок:</div>
+                        <input type="number" id="maxCapacity" value="50" min="1" step="5">
+                    </div>
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:3px;">Макс вага:</div>
+                        <input type="number" id="maxLoad" value="500" min="1" step="50">
+                    </div>
+                </div>
+                
+                <button onclick="calculateDistribution()">Підрахуй</button>
+
+                <hr style="border-color:#334155; margin: 15px 0;">
+                <button id="btnSelectMode" onclick="toggleSelectionMode()" class="secondary-btn">✍ Масове переміщення</button>
+                
+                <div id="bulkActions">
+                    <label style="color:#facc15;">Обрано точок: <span id="selCount">0</span></label>
+                    <div style="margin-bottom:5px; font-size:0.75rem;">Нова група:</div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="number" id="bulkGroupInput" placeholder="№" style="width: 60px;" min="-50">
+                        <button class="small-btn" onclick="moveSelectedPoints()" style="background:#0f172a;">OK</button>
+                    </div>
+                    <button class="small-btn" onclick="clearSelection()" style="width:100%; margin-top:5px; border-color: #ef4444; color:#ef4444;">Скасувати вибір</button>
+                </div>
+            </div>
+        </div>
+        <div class="card collapsed">
+            <div class="card-header" onclick="toggleCard(this)">
+                <label>Групувач</label>
+                <span class="toggle-icon">▼</span>
+            </div>
+
+            <div class="card-body">
+                <div class="setting-row">
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:3px;">Мін. зон:</div>
+                        <input type="number" id="minZones" value="2" min="1" max="10">
+                    </div>
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:3px;">Макс. зон:</div>
+                        <input type="number" id="maxZones" value="5" min="1" max="20">
+                    </div>
+                </div>
+                <button onclick="groupZones()" style="border-color: #facc15; color: #facc15;">Згрупувати</button>
+                <div id="groupStatus" class="status" style="font-size: 0.75rem;"></div>
+
+                <hr style="border-color:#334155; margin: 15px 0;">
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <label style="margin:0; color:#fff;">Ручний режим</label>
+                    <button id="btnManualMode" class="small-btn" onclick="toggleManualMode()" style="width:auto; margin:0;">ВКЛ</button>
+                </div>
+                
+                <div id="manualPanel" style="display:none; background:#334155; padding:8px; border-radius:4px; margin-top:5px;">
+                    <div style="font-size:0.75rem; color:#ccc; margin-bottom:5px;">Обрано зон: <span id="manualCount" style="color:#fff; font-weight:bold;">0</span></div>
+                    <button onclick="linkManualZones()" class="small-btn" style="background:#0f172a; width:100%; border:1px solid #4ade80; color:#4ade80;">Згрупувати обрані</button>
+                    <button onclick="clearManualSelection()" class="small-btn" style="background:#0f172a; width:100%; margin-top:5px; border:1px solid #ef4444; color:#ef4444;">Скасувати вибір</button>
+                </div>
+            </div>
+        </div>
+        <div class="card collapsed">
+            <div class="card-header" onclick="toggleCard(this)">
+                <label>Розробка графіків</label>
+                <span class="toggle-icon">▼</span>
+            </div>
+            
+            <div class="card-body">
+                <label style="color:#facc15;">Хвилі виїздів:</label>
+                <div id="wavesList" class="waves-list">
+                    </div>
+
+                <div class="wave-adder">
+                    <input type="time" id="newWaveTime" value="08:00">
+                    <button class="small-btn" onclick="addWave()" style="width: auto;">+</button>
+                </div>
+                <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 10px;">
+                    *Зони розподіляються по хвилях автоматично
+                </div>
+
+                <div class="setting-row" style="margin-top:10px; border-top:1px solid #334155; padding-top:10px;">
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#facc15; margin-bottom:3px;">Хв на точку:</div>
+                        <input type="number" id="timePerPoint" value="3" min="1" step="0.5">
+                    </div>
+                    <div class="setting-col">
+                        <div style="font-size:0.75rem; color:#facc15; margin-bottom:3px;">Км/год (в зоні):</div>
+                        <input type="number" id="travelSpeed" value="15" min="10" step="5">
+                    </div>
+                </div>
+                <button onclick="generateSchedules()" style="border-color: #38bdf8; color: #38bdf8;">Скласти графіки</button>
+                
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div id="scheduleStatus" class="status"></div>
+                    <button class="small-btn" onclick="clearOSRMCache()" style="width: auto; font-size: 0.7rem; border-color: #475569; color: #64748b;" title="Очистити збережені маршрути">
+                        🗑 Кэш
+                    </button>
+                </div>
+            </div>
+        </div>
+</div> 
+
+<div id="rightColumn">
+
+    <div id="topBar">
+        <div class="top-actions">
+            <button id="undoBtn" class="top-btn" onclick="undoLastAction()" disabled title="Скасувати дію">
+                ↩
+            </button>
+            <button class="top-btn" onclick="redrawMap()" title="Оновити мапу">
+                ↻
+            </button>
+            <button class="top-btn save-btn" onclick="exportToExcel()" title="Зберегти в Excel">
+                💾 Зберегти
+            </button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+    <img src="logo3.png" alt="Logo" class="map-floating-logo">
+    <div id="searchPanel" class="search-panel">
+        <input type="text" id="searchPointInp" placeholder="Пошук точки">
+        <input type="number" id="searchZoneInp" placeholder="Пошук зони">
+    </div>
+
+    <div id="ctxMenu" class="context-menu">
+        <div class="context-menu-item" onclick="splitZoneAction()">
+            <span>✂</span> Розбити зону...
+        </div>
+    </div>
+
+</div> <div id="scheduleContainer" class="schedule-overlay">
+    <div class="schedule-box">
+        <div class="schedule-header">
+            <h3>Графіки руху</h3>
+            <div style="display:flex; gap:10px;">
+                <button class="small-btn" onclick="exportScheduleToExcel()" style="background:#0f172a; border-color:#4ade80; color:#4ade80;">Exсel</button>
+                <button class="small-btn" onclick="closeSchedule()" style="background:#0f172a; border-color:#ef4444; color:#ef4444;">X</button>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th>Хвиля</th> <th>Зона</th>
+                        <th>Хаб</th>
+                        <th>Виїзд</th>
+                        <th>В дорозі</th>
+                        <th>Прибуття</th>
+                        <th>Робота в зоні</th>
+                        <th>Виїзд з зони</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="customModal" class="modal-overlay">
+    <div class="modal-box">
+        <div id="modalTitle" class="modal-title">Заголовок</div>
+        <div id="modalDesc" class="modal-desc">Текст описания</div>
+        <input type="text" id="modalInput" class="modal-input" autocomplete="off">
+        <div class="modal-buttons">
+            <button id="modalClose" class="button" onclick="closeModal(null)">Скасувати</button>
+            <button class="button" onclick="confirmModal()">OK</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

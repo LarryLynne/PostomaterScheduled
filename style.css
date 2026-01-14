@@ -1,0 +1,444 @@
+.map-floating-logo {
+    position: absolute; bottom: 25px; right: 25px;
+    width: 80px; height: auto; z-index: 5000;
+    opacity: 0.7; pointer-events: none; transition: opacity 0.3s ease;
+}
+.map-floating-logo:hover { opacity: 1; }
+
+:root {
+    --bg-body: #0f172a;       
+    --bg-sidebar: #1e293b; 
+    --bg-header: #1e293b;       
+    --bg-hover: #475569;      
+    --text-main: #f1f5f9;     
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --header-height: 50px; /* Высота шапки чуть компактнее */
+}
+
+body { 
+    margin: 0; padding: 0; 
+    font-family: 'Inter', sans-serif; 
+    display: flex; 
+    flex-direction: row; /* <--- ТЕПЕРЬ ГОРИЗОНТАЛЬНО */
+    height: 100vh; 
+    color: var(--text-main);
+    background: var(--bg-body);
+    overflow: hidden; 
+}
+/* --- TOP BAR (HEADER) --- */
+#topBar {
+    height: var(--header-height);
+    background: var(--bg-header);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 2000;
+}
+
+.top-actions { display: flex; gap: 10px; }
+
+.top-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    margin: 0; /* Сброс старых отступов */
+    width: auto; /* Сброс ширины 100% */
+}
+.top-btn:hover {
+    background: var(--bg-hover);
+    color: #fff;
+    border-color: #64748b;
+}
+.save-btn {
+    border-color: #4ade80;
+    color: #4ade80;
+}
+.save-btn:hover {
+    background: #4ade80;
+    color: #000;
+}
+
+#mainContent {
+    display: flex;
+    flex-grow: 1;
+    height: calc(100vh - var(--header-height));
+    position: relative;
+}
+
+#sidebar {
+    width: 300px; flex-shrink: 0; 
+    background: var(--bg-sidebar); padding: 20px; 
+    border-right: 1px solid #1e293b;
+    display: flex; flex-direction: column; gap: 15px; 
+    box-shadow: 4px 0 15px rgba(0,0,0,0.3);
+    z-index: 3000; /* Выше карты */
+    overflow-y: auto; 
+    height: 100vh; /* На всю высоту экрана */
+    box-sizing: border-box; 
+}
+
+/* --- RIGHT COLUMN (ПРАВАЯ КОЛОНКА) --- */
+#rightColumn {
+    flex-grow: 1; /* Занимает все оставшееся место */
+    display: flex;
+    flex-direction: column; /* Внутри: Шапка сверху, Карта снизу */
+    height: 100vh;
+    position: relative;
+    min-width: 0; /* Фикс для Leaflet внутри flex */
+}
+
+h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-main); font-weight: 700; }
+.card { background: #1e293b; border: 1px solid var(--border); border-radius: 6px; padding: 15px; }
+label { display: block; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+input[type="number"], input[type="file"], input[type="text"], input[type="time"] {
+    width: 100%; box-sizing: border-box; padding: 10px;
+    background: var(--bg-body); border: 1px solid var(--border);
+    color: var(--text-main); border-radius: 4px;
+    font-family: inherit; outline: none; transition: border-color 0.2s;
+    /* Це змушує браузер малювати вбудовані елементи (годинник) у темній темі */
+    color-scheme: dark; 
+}
+input[type="number"]:focus, input[type="text"]:focus { border-color: #64748b; }
+
+.file-wrapper {
+    position: relative; overflow: hidden;
+    background: var(--bg-body); border: 1px dashed var(--text-muted);
+    border-radius: 4px; padding: 15px; text-align: center; cursor: pointer;
+    transition: all 0.2s;
+}
+.file-wrapper:hover { border-color: var(--text-main); background: #182235; }
+.file-wrapper input { position: absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+#fileName { font-size: 0.85rem; color: var(--text-muted); pointer-events: none;}
+
+button {
+    text-align:center;
+    width: 100%; padding: 12px; margin-top: 10px;
+    background-color: var(--bg-sidebar); border: 1px solid var(--border);
+    color: var(--text-main); border-radius: 4px; cursor: pointer;
+    font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+    text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;
+    
+}
+button:hover { background-color: var(--bg-hover); border-color: #64748b; }
+button:active { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #1e293b; color: #64748b; }
+button.small-btn { margin-top: 0; padding: 6px 10px; font-size: 0.75rem; width: auto; background: #1e293b; }
+
+.status { font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; }
+.status-ok { color: #4ade80; }
+
+#map { 
+    flex-grow: 1; /* Карта занимает все место под шапкой */
+    width: 100%; 
+    height: 100%; 
+    background: #0f172a; 
+    position: relative; 
+    z-index: 1;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--bg-sidebar); color: var(--text-main);
+    border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+.leaflet-popup-content { margin: 15px; line-height: 1.6; }
+.popup-row { display: flex; gap: 5px; margin-top: 8px; align-items: center; }
+
+.group-label {
+    background: #747272b9; border: 2px solid var(--text-main);
+    color: var(--text-main); border-radius: 50%;
+    text-align: center; font-weight: bold; font-size: 12px; line-height: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5); cursor: help;
+}
+
+.selected-marker {
+    border: 2px solid #facc15 !important; transform: scale(1.3);
+    box-shadow: 0 0 10px #facc15; z-index: 1000 !important;
+}
+
+#bulkActions {
+    display: none; background: #334155; padding: 10px;
+    border-radius: 4px; margin-top: 10px; border: 1px solid #facc15;
+}
+
+.setting-row { display: flex; gap: 10px; margin-bottom: 5px; }
+.setting-col { flex: 1; }
+
+/* Контекстное меню */
+.context-menu {
+    display: none; position: absolute; z-index: 10000;
+    background: #1e293b; border: 1px solid #475569;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5); border-radius: 6px;
+    padding: 5px 0; min-width: 160px; overflow: hidden;
+}
+.context-menu-item {
+    padding: 10px 15px; cursor: pointer; color: #f1f5f9;
+    font-size: 0.85rem; display: flex; align-items: center;
+    gap: 8px; transition: background 0.2s;
+}
+.context-menu-item:hover { background: #334155; color: #facc15; }
+.context-menu-item span { font-size: 1.1em; }
+
+.locked-marker {
+    border-radius: 0 !important; border: 2px solid #fff !important; z-index: 2000 !important;
+}
+
+/* SEARCH PANEL */
+.search-panel {
+    position: absolute;
+    top: 50px;
+    right: 60px; /* Отступ справа, чтобы не перекрывать Zoom кнопки */
+    z-index: 3000;
+    background: var(--bg-sidebar);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    opacity: 0.8;
+}
+.search-panel input {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    width: 140px;
+    background: #0f172a;
+}
+
+@media (max-width: 800px) {
+    body { flex-direction: column; }
+    #sidebar { width: 100%; height: 40vh; border-right: none; border-bottom: 1px solid #1e293b; }
+    #map { width: 100%; height: 60vh; }
+    .search-panel { top: auto; bottom: 20px; right: 20px; flex-direction: column; width: 120px; }
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 4px; border: 2px solid #0f172a; }
+::-webkit-scrollbar-thumb:hover { background-color: #475569; }
+
+select {
+    width: 100%; padding: 10px; background: var(--bg-body); border: 1px solid var(--border);
+    color: var(--text-main); border-radius: 4px; cursor: pointer; margin-bottom: 5px;
+}
+
+/* Стиль для тимчасової підказки при пошуку */
+.flash-tooltip {
+    background-color: #facc15;
+    border: 2px solid #fff;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 1.1rem;
+    border-radius: 6px;
+    box-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+    opacity: 1 !important;
+}
+/* Прибираємо стандартну стрілочку Leaflet */
+.leaflet-tooltip-top:before, 
+.leaflet-tooltip-bottom:before, 
+.leaflet-tooltip-left:before, 
+.leaflet-tooltip-right:before {
+    display: none !important;
+}
+
+/* Модальное окно */
+.modal-overlay {
+    display: none; 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999;
+    align-items: center; justify-content: center;
+}
+.modal-box {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    width: 300px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 15px;
+    animation: popIn 0.2s ease-out;
+}
+@keyframes popIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.modal-title { font-weight: 700; color: var(--text-main); font-size: 1.1rem; }
+.modal-desc { font-size: 0.9rem; color: var(--text-muted); }
+.modal-input {
+    width: 100%; padding: 10px; background: var(--bg-body);
+    border: 1px solid var(--border); color: #facc15; font-size: 1.1rem;
+    border-radius: 4px; outline: none; text-align: center;
+}
+.modal-buttons { display: flex; gap: 10px; margin-top: 5px; }
+
+/* --- Изменение ширины сайдбара --- */
+#sidebar {
+    width: 300px; /* Было 340px */
+    /* Остальные стили sidebar оставьте как были */
+}
+
+/* --- Стили для сворачиваемых блоков (Аккордеон) --- */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 10px; /* Отступ до контента */
+    user-select: none;
+}
+
+.card-header label {
+    margin-bottom: 0; /* Убираем лишний отступ у лейбла */
+    cursor: pointer;
+}
+
+.card-header .toggle-icon {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+.card-body {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+/* Класс, который мы будем добавлять через JS для скрытия */
+.card.collapsed .card-body {
+    display: none;
+}
+
+.card.collapsed .card-header .toggle-icon {
+    transform: rotate(-90deg); /* Поворот стрелочки */
+}
+
+.card.collapsed {
+    padding-bottom: 10px; /* Чуть меньше отступ, когда свернуто */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Добавить в конец файла */
+.zone-marker-selected {
+    background-color: #facc15 !important;
+    color: #000 !important;
+    border-color: #fff !important;
+    transform: scale(1.3);
+    z-index: 9999 !important;
+    box-shadow: 0 0 10px #facc15 !important;
+}
+
+/* --- SCHEDULE TABLE STYLES --- */
+.schedule-overlay {
+    display: none; /* Приховано за замовчуванням */
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.9);
+    z-index: 9999;
+    align-items: center; justify-content: center;
+}
+
+.schedule-box {
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 90%; max-width: 1000px; height: 80%;
+    display: flex; flex-direction: column;
+    padding: 20px; box-shadow: 0 0 30px rgba(0,0,0,0.7);
+}
+
+.schedule-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px;
+}
+.schedule-header h3 { margin: 0; color: #f1f5f9; }
+
+.table-wrapper {
+    flex-grow: 1; overflow: auto;
+    border: 1px solid var(--border); border-radius: 4px;
+}
+
+table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem;
+    color: var(--text-main);
+}
+th, td {
+    padding: 10px; text-align: left; border-bottom: 1px solid var(--border);
+}
+th {
+    background: #0f172a; position: sticky; top: 0;
+    font-weight: 600; color: #94a3b8;
+}
+tr:hover { background: #334155; }
+
+/* --- СТИЛІЗАЦІЯ ПОЛЯ ЧАСУ --- */
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1); /* Робить чорну іконку білою */
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Прибираємо іконку годинника, якщо хочете, щоб клік був по всьому полю (опціонально) */
+ input[type="time"] { cursor: pointer; } 
+
+ /* --- WAVES MANAGER --- */
+.waves-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.wave-tag {
+    background: #334155;
+    color: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #475569;
+}
+
+.wave-tag span {
+    font-weight: bold;
+    color: #38bdf8;
+}
+
+.wave-del {
+    cursor: pointer;
+    color: #ef4444;
+    font-weight: bold;
+    line-height: 1;
+}
+.wave-del:hover { color: #ff0000; }
+
+.wave-adder {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.wave-badge {
+    background: #0f172a; border: 1px solid #38bdf8; color: #38bdf8;
+    padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;
+}

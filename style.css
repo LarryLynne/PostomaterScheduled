@@ -323,7 +323,13 @@ select {
 }
 
 .card.collapsed {
-    padding-bottom: 10px; /* Чуть меньше отступ, когда свернуто */
+    padding-top: 8px !important;    /* Сверху меньше (было 15) */
+    padding-bottom: 8px !important;
+    /*padding-bottom: 10px; /* Чуть меньше отступ, когда свернуто */
+}
+
+.card.collapsed .card-header {
+    margin-bottom: 0 !important;
 }
 
 @keyframes fadeIn {
